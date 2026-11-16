@@ -89,6 +89,10 @@ nav.main a.acc .av{width:24px;height:24px;border-radius:50%;background:var(--blu
 .profile-card .btns{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
 .profile-card .btns button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600}
 .profile-card .btns button:hover{background:rgba(255,255,255,.18)}
+.acc-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.acc-actions .btn{cursor:pointer}
+.btn.delete{background:#D92D4A;color:#fff}
+.btn.delete:hover{background:#B42346}
 .subtabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .subtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;color:var(--navy-2)}
 .subtabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}

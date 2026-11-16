@@ -292,6 +292,7 @@ function Dashboard() {
 
   return (
     <div className="acc-grid">
+      <div>
       <aside className="profile-card">
         <div className="big">{(profile.prenom || "✦")[0].toUpperCase()}</div>
         <h2>Bonjour {profile.prenom} !</h2>
@@ -300,12 +301,13 @@ function Dashboard() {
         <div className="meta" style={{ marginTop: 2 }}>{user.email}</div>
         <div className="tags" style={{ marginTop: 14 }}>{(profile.interets || []).map((k) => DOMAINS[k] && <span key={k} className="tag">{DOMAINS[k]}</span>)}</div>
         <div className="meta" style={{ marginTop: 6 }}>{nFav} favori{nFav > 1 ? "s" : ""}</div>
-        <div className="btns">
-          <button onClick={() => setEditing(true)}>Modifier mon profil</button>
-          <button onClick={signOut}>Se déconnecter</button>
-          <button onClick={onDelete}>Supprimer mon compte</button>
-        </div>
       </aside>
+      <div className="acc-actions">
+        <button className="btn ghost small" onClick={() => setEditing(true)}>Modifier mon profil</button>
+        <button className="btn ghost small" onClick={signOut}>Se déconnecter</button>
+        <button className="btn small delete" onClick={onDelete}>Supprimer mon compte</button>
+      </div>
+      </div>
       <div>
         {isActor && !partner && (
           <div className={actorReq?.status === "refused" ? "err" : "okbox"} style={{ marginBottom: 16 }}>
