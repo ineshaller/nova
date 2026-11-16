@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EventCard, PageHead, SchoolCard, VideoCard } from "../components/Common.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useData } from "../context/DataContext.jsx";
@@ -21,18 +21,20 @@ function frError(e) {
 }
 
 /* ---------- Champs de profil (inscription et modification) ---------- */
-function ProfileFields({ p = {} }) {
+function ProfileFields({ p = {}, actor = false }) {
   const ints = new Set(p.interets || []);
   return (
     <>
       <div className="two">
-        <label>Prénom ou pseudo<input name="prenom" required maxLength={40} defaultValue={p.prenom || ""} placeholder="Ex. : Léa" /></label>
+        <label>{actor ? "Votre prénom" : "Prénom ou pseudo"}<input name="prenom" required maxLength={40} defaultValue={p.prenom || ""} placeholder="Ex. : Léa" /></label>
         <label>Ville (facultatif)<input name="ville" maxLength={60} defaultValue={p.ville || ""} placeholder="Pour repérer les événements près de chez vous" /></label>
       </div>
-      <label>Je suis…
-        <select name="niveau" defaultValue={p.niveau || "lyc"}>{Object.entries(LEVELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-      </label>
-      <label>Ce qui m'intéresse
+      {actor ? <input type="hidden" name="niveau" value="pro" /> : (
+        <label>Je suis…
+          <select name="niveau" defaultValue={p.niveau || "lyc"}>{Object.entries(LEVELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+        </label>
+      )}
+      <label>{actor ? "Domaines de votre structure" : "Ce qui m'intéresse"}
         <div className="checks">
           {Object.entries(DOMAINS).map(([k, l]) => (
             <label key={k}><input type="checkbox" name="interets" value={k} defaultChecked={ints.has(k)} /> {l}</label>
@@ -49,11 +51,43 @@ const readProfile = (fd) => ({
   interets: fd.getAll("interets"),
 });
 
+/* ---------- Champs « acteur » (association, école, entreprise…) à l'inscription ---------- */
+function ActorFields() {
+  const { actors } = useData();
+  const [actorId, setActorId] = useState("");
+  return (
+    <>
+      <label>Votre structure est-elle déjà sur Nova ?
+        <select name="actorId" value={actorId} onChange={(e) => setActorId(e.target.value)}>
+          <option value="">Non, pas encore</option>
+          {actors.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </label>
+      <div className="two">
+        <label>Nom de la structure<input name="orgName" required minLength={2} maxLength={120}
+          key={actorId} defaultValue={actors.find((a) => a.id === actorId)?.name || ""} placeholder="Association, école, entreprise…" /></label>
+        <label>Votre rôle (facultatif)<input name="role" maxLength={80} placeholder="Ex. : chargée de communication" /></label>
+      </div>
+      <label>Site officiel (facultatif)<input name="website" type="url" placeholder="https://…" /></label>
+      <label>Message pour l'équipe (facultatif)<textarea name="message" maxLength={1000} placeholder="Quels événements organisez-vous ? À quelle fréquence ?" /></label>
+      <p className="note" style={{ margin: 0 }}>L'équipe Nova vérifie chaque compte acteur avant d'ouvrir la publication d'événements. Vous pouvez utiliser votre compte normalement en attendant.</p>
+    </>
+  );
+}
+const readActor = (fd) => ({
+  orgName: String(fd.get("orgName") || "").trim().slice(0, 120),
+  actorId: fd.get("actorId") || "",
+  role: String(fd.get("role") || "").trim().slice(0, 80),
+  website: String(fd.get("website") || "").trim(),
+  message: String(fd.get("message") || "").trim().slice(0, 1000),
+});
+
 /* ---------- Connexion / inscription / mot de passe oublié ---------- */
 function AuthForms() {
   const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useUI();
   const [mode, setMode] = useState("signup");
+  const [kind, setKind] = useState("perso"); // type de compte à l'inscription : "perso" ou "acteur"
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
@@ -67,9 +101,12 @@ function AuthForms() {
     ev.preventDefault();
     const fd = new FormData(ev.currentTarget);
     if (fd.get("password") !== fd.get("password2")) return setErr("Les deux mots de passe ne correspondent pas.");
+    const actor = kind === "acteur" ? readActor(fd) : null;
+    if (actor?.website && !/^https?:\/\//.test(actor.website)) return setErr("Le site doit commencer par https://");
     run(async () => {
-      const r = await signUp({ email: String(fd.get("email")).trim(), password: fd.get("password"), ...readProfile(fd) });
-      if (r.needsConfirmation) setInfo("Compte créé ! Un e-mail de confirmation vient de vous être envoyé : cliquez sur le lien pour activer votre compte, puis connectez-vous.");
+      const r = await signUp({ email: String(fd.get("email")).trim(), password: fd.get("password"), ...readProfile(fd), actor });
+      const extra = actor ? " Votre demande de compte acteur a été transmise à l'équipe Nova." : "";
+      if (r.needsConfirmation) setInfo("Compte créé ! Un e-mail de confirmation vient de vous être envoyé : cliquez sur le lien pour activer votre compte, puis connectez-vous." + extra);
       else toast("Bienvenue sur Nova ✦");
     });
   };
@@ -108,6 +145,12 @@ function AuthForms() {
         )}
         {mode === "signup" && (
           <form className="f" onSubmit={onSignup} style={{ background: "none", border: 0, padding: 0 }}>
+            <label>Je crée un compte…
+              <div className="checks" role="radiogroup">
+                <label><input type="radio" name="kind" value="perso" checked={kind === "perso"} onChange={() => setKind("perso")} /> personnel</label>
+                <label><input type="radio" name="kind" value="acteur" checked={kind === "acteur"} onChange={() => setKind("acteur")} /> en tant qu'acteur (association, école, entreprise, institution…)</label>
+              </div>
+            </label>
             <div className="two">
               <label>E-mail<input name="email" type="email" required autoComplete="email" /></label>
               <span />
@@ -116,7 +159,8 @@ function AuthForms() {
               <label>Mot de passe (8 caractères min.)<input name="password" type="password" required minLength={8} autoComplete="new-password" /></label>
               <label>Confirmer le mot de passe<input name="password2" type="password" required minLength={8} autoComplete="new-password" /></label>
             </div>
-            <ProfileFields />
+            <ProfileFields actor={kind === "acteur"} />
+            {kind === "acteur" && <ActorFields />}
             <label className="consent"><input type="checkbox" required /> J'accepte que Nova enregistre ces informations pour gérer mon compte et personnaliser mon espace. Je peux les modifier ou supprimer mon compte à tout moment.</label>
             {feedback}
             <button className="btn primary" type="submit" disabled={busy} style={{ justifySelf: "start" }}>{busy ? "Création…" : "Créer mon compte"}</button>
@@ -183,6 +227,13 @@ function Dashboard() {
   const [sub, setSub] = useState("favs");
   const [editing, setEditing] = useState(false);
   const [err, setErr] = useState("");
+  const [actorReq, setActorReq] = useState(null); // dernière demande de partenariat (comptes acteurs)
+  const isActor = profile?.account_type === "acteur";
+
+  useEffect(() => {
+    if (!isActor || partner) { setActorReq(null); return; }
+    api.fetchMyPartnerRequests().then((r) => setActorReq(r[0] || null)).catch(() => setActorReq(null));
+  }, [isActor, !!partner, user.id]);
 
   if (!profile) return <div className="loading">Chargement de votre espace…</div>;
 
@@ -214,7 +265,7 @@ function Dashboard() {
     <div className="panel">
       <h2 style={{ fontSize: 24, marginBottom: 16 }}>Modifier mon profil</h2>
       <form className="f" onSubmit={onSave} style={{ maxWidth: 720 }}>
-        <ProfileFields p={profile} />
+        <ProfileFields p={profile} actor={isActor} />
         {err && <div className="err">{err}</div>}
         <div className="row" style={{ justifyContent: "flex-start" }}>
           <button className="btn primary" type="submit">Enregistrer</button>
@@ -244,7 +295,7 @@ function Dashboard() {
       <aside className="profile-card">
         <div className="big">{(profile.prenom || "✦")[0].toUpperCase()}</div>
         <h2>Bonjour {profile.prenom} !</h2>
-        <div className="meta">{LEVELS[profile.niveau]}{profile.ville ? ` · ${profile.ville}` : ""}{isAdmin ? " · Admin" : ""}</div>
+        <div className="meta">{isActor ? "Compte acteur" : LEVELS[profile.niveau]}{profile.ville ? ` · ${profile.ville}` : ""}{isAdmin ? " · Admin" : ""}</div>
         {partner && <div className="meta" style={{ marginTop: 2 }}>Partenaire : {partner.actorName}</div>}
         <div className="meta" style={{ marginTop: 2 }}>{user.email}</div>
         <div className="tags" style={{ marginTop: 14 }}>{(profile.interets || []).map((k) => DOMAINS[k] && <span key={k} className="tag">{DOMAINS[k]}</span>)}</div>
@@ -256,6 +307,15 @@ function Dashboard() {
         </div>
       </aside>
       <div>
+        {isActor && !partner && (
+          <div className={actorReq?.status === "refused" ? "err" : "okbox"} style={{ marginBottom: 16 }}>
+            {actorReq?.status === "refused"
+              ? <>Votre demande de compte acteur pour « {actorReq.org_name} » n'a pas été acceptée. N'hésitez pas à contacter l'équipe Nova pour en savoir plus.</>
+              : actorReq
+                ? <>Compte acteur en cours de vérification pour « {actorReq.org_name} ». Dès que l'équipe Nova l'aura validé, l'onglet « Mon association » apparaîtra ici pour publier vos événements.</>
+                : <>Compte acteur : votre demande est en cours de traitement par l'équipe Nova.</>}
+          </div>
+        )}
         <div className="subtabs">{tabs.map(([k, l]) => <button key={k} className={sub === k ? "on" : ""} onClick={() => setSub(k)}>{l}</button>)}</div>
 
         {sub === "favs" && (nFav ? (

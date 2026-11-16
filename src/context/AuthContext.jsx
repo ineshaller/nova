@@ -40,11 +40,19 @@ export function AuthProvider({ children }) {
     if (user) setPartner(await api.fetchMyPartnership(user.id).catch(() => null));
   }, [user?.id]);
 
-  const signUp = async ({ email, password, prenom, niveau, interets, ville }) => {
+  // actor (facultatif) : { orgName, actorId, role, website, message } pour un compte acteur.
+  // La demande de partenariat est créée par la base (migration 03), même si
+  // l'e-mail doit d'abord être confirmé.
+  const signUp = async ({ email, password, prenom, niveau, interets, ville, actor }) => {
+    const data0 = { prenom, niveau, interets, ville, account_type: actor ? "acteur" : "perso" };
+    if (actor) Object.assign(data0, {
+      org_name: actor.orgName, actor_id: actor.actorId || null, role: actor.role || "",
+      website: actor.website || null, message: actor.message || "",
+    });
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { prenom, niveau, interets, ville },
+        data: data0,
         emailRedirectTo: window.location.origin + window.location.pathname + "#compte",
       },
     });
