@@ -1,35 +1,82 @@
 // Pages simples : Acteurs et À propos
+import { useRef, useState } from "react";
 import { PageHead } from "../components/Common.jsx";
 import { useData } from "../context/DataContext.jsx";
 import { useUI } from "../context/UIContext.jsx";
-import { PUBS } from "../lib/constants.js";
+import { ACTOR_KINDS, APPROACHES, PUBS, SCOPES } from "../lib/constants.js";
 import { isPast, norm } from "../lib/format.js";
 
 export function Actors() {
   const { actors, events } = useData();
   const { setAgendaFilter } = useUI();
+  const [appr, setAppr] = useState("");
+  const [pub, setPub] = useState("");
+  const top = useRef(null);
+
+  const items = actors.filter((a) => (!appr || a.approaches.includes(appr)) && (!pub || a.pub.includes(pub) || a.pub.includes("all")));
+  const byAppr = (k) => actors.filter((a) => a.approaches.includes(k));
+  const pick = (k) => { setAppr(k); setPub(""); top.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
   return (
     <>
-      <PageHead title="Les acteurs">Les associations, écoles et institutions qui organisent ces événements toute l'année. Pour aller plus loin que l'agenda : mentorat, marraines, ressources.</PageHead>
-      <section style={{ paddingTop: 8 }}>
-        <div className="wrap"><div className="actors">
-          {actors.map((a) => {
-            const n = events.filter((e) => (e.actorId === a.id || norm(e.org).includes(norm(a.key))) && !isPast(e)).length;
-            return (
-              <article className="actor" key={a.id}>
-                <div className="ini">{a.ini}</div>
-                <h3>{a.name}</h3>
-                {a.partner && <span className="tag partner-tag" style={{ alignSelf: "flex-start" }}>✓ Partenaire Nova</span>}
-                <p>{a.desc}</p>
-                <div className="tags">{a.pub.map((p) => <span key={p} className="tag">{PUBS[p]}</span>)}</div>
-                <div className="actions">
-                  {a.url && <a className="go" href={a.url} target="_blank" rel="noopener noreferrer">Site officiel ↗</a>}
-                  {n > 0 && <a href="#agenda" onClick={() => setAgendaFilter({ when: "up", cats: [], pub: "", q: "", org: a.key })}>{n} événement{n > 1 ? "s" : ""} à venir</a>}
-                </div>
-              </article>
-            );
-          })}
-        </div></div>
+      <PageHead title="Les acteurs">Les associations, écoles, entreprises et institutions qui agissent pour la place des filles et des femmes dans les sciences, le numérique et l'ingénierie.</PageHead>
+      <section style={{ paddingTop: 28 }}>
+        <div className="wrap">
+          <div className="actors-intro">
+            <h2>Les solutions qui existent déjà</h2>
+            <p>De nombreuses initiatives cherchent déjà à améliorer la place des filles et des femmes dans les sciences. Elles ne fonctionnent pas toutes de la même manière : certaines interviennent très tôt contre les stéréotypes, d'autres proposent des rôles modèles ou du mentorat, certaines font pratiquer les sciences et le numérique, d'autres accompagnent les étudiantes vers le monde professionnel.</p>
+            <p>Pour chacune, nous indiquons ce qu'elle propose et ce que nous en retenons pour Nova.</p>
+          </div>
+
+          <div className="row" ref={top} style={{ marginTop: 24, scrollMarginTop: 90 }}>
+            <div className="chips">
+              <button className={`chip ${!appr ? "on" : ""}`} onClick={() => setAppr("")}>Toutes les approches</button>
+              {Object.entries(APPROACHES).map(([k, v]) => byAppr(k).length > 0 && (
+                <button key={k} className={`chip ${appr === k ? "on" : ""}`} onClick={() => setAppr(k)}>{v.label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <select value={pub} onChange={(e) => setPub(e.target.value)} aria-label="Public">
+              <option value="">Tous les publics</option>
+              {Object.entries(PUBS).filter(([k]) => k !== "all").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <span className="count">{items.length} acteur{items.length > 1 ? "s" : ""}</span>
+          </div>
+          {appr && <p className="note" style={{ margin: "10px 0 0" }}><b>{APPROACHES[appr].label}</b> — objectif : {APPROACHES[appr].goal.toLowerCase()}.</p>}
+
+          <div className="actors">
+            {items.map((a) => {
+              const n = events.filter((e) => (e.actorId === a.id || norm(e.org).includes(norm(a.key))) && !isPast(e)).length;
+              return (
+                <article className="actor" key={a.id}>
+                  <div className="actor-head">
+                    <div className="ini">{a.ini}</div>
+                    <div>
+                      <h3>{a.name}</h3>
+                      <div className="actor-kind">{ACTOR_KINDS[a.kind] || "Association"}{a.scope !== "france" ? ` · ${SCOPES[a.scope]}` : ""}</div>
+                    </div>
+                  </div>
+                  {a.partner && <span className="tag partner-tag" style={{ alignSelf: "flex-start" }}>✓ Partenaire Nova</span>}
+                  {!!a.approaches.length && (
+                    <div className="appr-tags">{a.approaches.map((k) => APPROACHES[k] && (
+                      <button key={k} className={appr === k ? "on" : ""} onClick={() => pick(k)}>{APPROACHES[k].label}</button>
+                    ))}</div>
+                  )}
+                  <p>{a.desc}</p>
+                  {a.programmes && <p className="actor-prog"><b>Programmes :</b> {a.programmes}</p>}
+                  {a.takeaway && <div className="takeaway"><b>Ce que nous en retenons</b>{a.takeaway}</div>}
+                  <div className="tags" style={{ marginBottom: 0 }}>{a.pub.map((p) => <span key={p} className="tag">{PUBS[p]}</span>)}</div>
+                  <div className="actions">
+                    {a.url && <a className="go" href={a.url} target="_blank" rel="noopener noreferrer">Site officiel ↗</a>}
+                    {n > 0 && <a href="#agenda" onClick={() => setAgendaFilter({ when: "up", cats: [], pub: "", q: "", org: a.key })}>{n} événement{n > 1 ? "s" : ""} à venir</a>}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {!items.length && <div className="empty">Aucun acteur ne correspond à ces filtres.</div>}
+        </div>
       </section>
     </>
   );

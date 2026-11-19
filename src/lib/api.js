@@ -18,6 +18,9 @@ const toFormation = (r) => ({
 const toActor = (r) => ({
   id: r.id, name: r.name, key: r.match_key, ini: r.initials, url: r.url, pub: r.pub || [], desc: r.description,
   partner: !!r.partner, autoPublish: r.auto_publish !== false,
+  // Colonnes de la migration 04 (valeurs par défaut si elle n'est pas encore passée)
+  kind: r.kind || "asso", scope: r.scope || "france", approaches: r.approaches || [],
+  programmes: r.programmes || "", takeaway: r.takeaway || "",
 });
 const publicUrl = (path) => (path ? supabase.storage.from("videos").getPublicUrl(path).data.publicUrl : null);
 const toVideo = (r) => ({

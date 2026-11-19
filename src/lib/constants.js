@@ -43,6 +43,22 @@ export const LEVELS = {
   col: "Collégienne", lyc: "Lycéenne", etu: "Étudiante", pro: "Professionnelle / chercheuse",
 };
 
+// Familles de solutions (page Acteurs) : clé stockée dans actors.approaches → libellé et objectif
+export const APPROACHES = {
+  stereo:         { label: "Sensibilisation aux stéréotypes", goal: "Faire évoluer les représentations" },
+  roles:          { label: "Rôles modèles",                   goal: "Permettre aux jeunes filles de se projeter" },
+  marrainage:     { label: "Marrainage",                      goal: "Créer une relation d'accompagnement dans le temps" },
+  tech:           { label: "Apprentissage technique",         goal: "Développer des compétences et la confiance par la pratique" },
+  projets:        { label: "Challenges et projets",           goal: "Mettre les participantes en situation d'agir" },
+  orientation:    { label: "Orientation",                     goal: "Mieux connaître les études et les métiers" },
+  immersion:      { label: "Immersion",                       goal: "Découvrir concrètement un environnement professionnel" },
+  reseau:         { label: "Réseau professionnel",            goal: "Développer son réseau et accéder aux premières opportunités" },
+  etablissements: { label: "Action sur les établissements",   goal: "Faire évoluer l'environnement" },
+  communaute:     { label: "Communauté dans la durée",        goal: "Maintenir l'accompagnement au-delà d'une action ponctuelle" },
+};
+export const ACTOR_KINDS = { asso: "Association", ecole: "École", entreprise: "Entreprise", institution: "Institution", fondation: "Fondation" };
+export const SCOPES = { france: "France", europe: "Europe", international: "International" };
+
 export const ROLES = { ing: "Ingénieure", etu: "Étudiante", cher: "Chercheuse", tech: "Technicienne" };
 
 export const MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
